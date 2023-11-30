@@ -22,7 +22,6 @@
 #include "filesystem.h"
 #include "model_factory.h"
 #include "model_interface.h"
-#include "discretepiece.pb.h"
 #include "third_party/absl/memory/memory.h"
 #include "third_party/absl/strings/numbers.h"
 #include "third_party/absl/strings/str_cat.h"

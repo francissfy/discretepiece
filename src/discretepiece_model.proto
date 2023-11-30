@@ -1,0 +1,133 @@
+// Copyright 2016 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.!
+
+syntax = "proto2";
+
+// TODO(taku): Needs to use LITE RUNTIME in OSS release.
+option optimize_for = LITE_RUNTIME;
+
+package discretepiece;
+
+// TrainerSpec encodes a various parameters for SentencePiece training.
+// Next id: 54
+message TrainerSpec {
+  ///////////////////////////////////////////////////////////////////
+  // General parameters
+  //
+  // Input corpus files.
+  //  Trainer accepts the following two formats:
+  //  A) Monolingual: plain text, one sentence per line.
+  //  B) Bilingual:   TSV, source sentence <tab> target sentence
+  //  When bilingual data is passed, shared vocabulary model is built.
+  //  Note that the input file must be raw corpus, not a preprocessed corpus.
+  //  Trainer only loads the first `input_sentence_size` sentences specified
+  //  with this parameter.
+  repeated string input = 1;
+
+  // Input corpus format:
+  // "text": one-sentence-per-line text format (default)
+  optional string input_format = 2;
+
+  // Output model file prefix.
+  // <model_prefix>.model and <model_prefix>.vocab are generated.
+  optional string model_prefix = 3;
+
+  // Model type. only have BPE now.
+  enum ModelType {
+    BPE = 1;      // Byte Pair Encoding
+  }
+  optional ModelType model_type = 4 [default = BPE];
+
+  // Vocabulary size. 8k is the default size.
+  optional int32 vocab_size = 5 [default = 8000];
+
+  ///////////////////////////////////////////////////////////////////
+  // Training parameters.
+  //
+  // Maximum size of sentences the trainer loads from `input` parameter.
+  // input_sentence_size = 0: means loads all sentences
+  // Trainer simply loads the `input` files in sequence.
+  // It is better to shuffle the input corpus randomly.
+  optional uint64 input_sentence_size = 6 [default = 0];
+  optional bool shuffle_input_sentence = 7 [default = true];
+
+  // deliminator used to split chunks, usually denoting silence or word boundary
+  // in training, we convert the deliminator to std::limits<char32>::max() for compatibility to sentence type
+  optional string deliminator = 8 [default = "#"];
+
+  // Number of threads in the training.
+  optional int32 num_threads = 9 [default = 16];
+
+  // Number of EM sub iterations.
+  optional int32 num_sub_iterations = 10 [default = 2];
+
+  ///////////////////////////////////////////////////////////////////
+  // SentencePiece parameters which control the shapes of sentence piece.
+  // Maximum length of sentencepiece.
+  optional int32 max_discretepiece_length = 11 [default = 16];
+
+  ///////////////////////////////////////////////////////////////////
+  // Vocabulary management
+  //
+  // When creating the vocabulary file, defines whether or not to additionally
+  // output the score for each piece.
+  optional bool vocabulary_output_piece_score = 12 [default = true];
+
+  ///////////////////////////////////////////////////////////////////
+  // Reserved special meta tokens.
+  // * -1 is not used.
+  // * unk_id must not be -1.
+  // Id must starts with 0 and be contigous.
+  // optional int32 unk_id = 13 [default = 0];   // <unk>
+  // optional int32 bos_id = 14 [default = 1];   // <s>
+  // optional int32 eos_id = 15 [default = 2];   // </s>
+  // optional string unk_piece = 16 [default = "<unk>"];
+  // optional string bos_piece = 17 [default = "<s>"];
+  // optional string eos_piece = 18 [default = "</s>"];
+
+  // Customized extensions: the range of field numbers
+  // are open to third-party extensions.
+  extensions 200 to max;
+}
+
+
+// ModelProto stores model parameters.
+// SentencePieceProcessor is supposed to be self-contained.
+// All settings/parameters which may change the behavior must be encoded
+// in ModelProto.
+message ModelProto {
+  message DiscretePiece {
+    enum Type {
+      NORMAL = 1;        // normal symbol
+                         // for future extension
+    }
+    optional string piece = 1;  // piece must not be empty.
+    optional float score = 2;
+    optional Type type = 3 [default = NORMAL];
+
+    // Customized extensions: the range of field numbers
+    // are open to third-party extensions.
+    extensions 200 to max;
+  }
+
+  // Sentence pieces with scores.
+  repeated DiscretePiece pieces = 1;
+
+  // Spec used to generate this model file.
+  optional TrainerSpec trainer_spec = 2;
+
+  // Customized extensions: the range of field numbers
+  // are open to third-party extensions.
+  extensions 200 to max;
+}

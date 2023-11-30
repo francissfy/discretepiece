@@ -4,8 +4,7 @@ libdir=@libdir_for_pc_file@
 includedir=@includedir_for_pc_file@
 
 Name: @PROJECT_NAME@
-Description: Unsupervised text tokenizer and detokenizer for Neural Network-based text generation.
+Description: Unsupervised discrete sequence tokenizer.
 Version: @PROJECT_VERSION@
-Libs: -L${libdir} -lsentencepiece -lsentencepiece_train
 Cflags: -I${includedir}
 Requires.private: @libprotobuf_lite@

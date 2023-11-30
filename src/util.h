@@ -189,7 +189,9 @@ std::string UnicodeTextToUTF8(const UnicodeText &utext);
 
 std::string VectorChar32ToString(const std::vector<char32> &vec, std::string_view out_deliminator);
 
-std::vector<char32> StringToVectorChar32(const std::string &str, const absl::flat_hash_map<char, char32> &special_mapping); 
+std::vector<char32> StringToVectorChar32(absl::string_view str, 
+                                         const absl::flat_hash_map<char, char32> &special_mapping = {}, 
+                                         char deliminator = ' '); 
 
 }  // namespace string_util
 
@@ -468,6 +470,8 @@ void STLDeleteElements(std::vector<T *> *vec) {
 // TODO: this can be very slow
 struct VectorChar32Hash {
   std::size_t operator()(const std::vector<char32>&) const;
+
+  std::hash<absl::string_view> hasher;
 };
 
 // implement `<` operator for vector<char32>

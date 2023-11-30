@@ -17,8 +17,8 @@ set(ABSL_FLAGS_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/../third_party/absl/flags/flag.c
 
 
 if (SPM_USE_BUILTIN_PROTOBUF)
-  set(SPM_PROTO_HDRS builtin_pb/discretepiece.pb.h)
-  set(SPM_PROTO_SRCS builtin_pb/discretepiece.pb.cc)
+  # set(SPM_PROTO_HDRS builtin_pb/discretepiece.pb.h)
+  # set(SPM_PROTO_SRCS builtin_pb/discretepiece.pb.cc)
   set(SPM_MODEL_PROTO_HDRS builtin_pb/discretepiece_model.pb.h)
   set(SPM_MODEL_PROTO_SRCS builtin_pb/discretepiece_model.pb.cc)
   set(PROTOBUF_LITE_LIBRARY "")
@@ -106,6 +106,31 @@ set(SPM_TRAIN_SRCS
   discretepiece_trainer.cc
 )
 
+set(SPM_ENCODE_SRCS
+  ${PROTOBUF_LITE_SRCS}
+  ${SPM_PROTO_HDRS}
+  ${SPM_PROTO_SRCS}
+  ${SPM_MODEL_PROTO_HDRS}
+  ${SPM_MODEL_PROTO_SRCS}
+  ${ABSL_STRINGS_SRCS}
+  ${ABSL_FLAGS_SRCS}
+  common.h
+  util.h
+  util.cc
+  filesystem.h
+  filesystem.cc
+  init.h
+  error.cc
+  discretepiece_processor.h
+  discretepiece_processor.cc
+  model_interface.h
+  model_interface.cc
+  model_factory.h
+  model_factory.cc
+  bpe_model.h
+  bpe_model.cc
+)
+
 find_package(Threads REQUIRED)
 
 list(APPEND SPM_LIBS ${PROTOBUF_LITE_LIBRARY} Threads::Threads)
@@ -123,6 +148,9 @@ if ((${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm") OR
     list(APPEND SPM_LIBS "atomic")
   endif()
 endif()
+
+add_library(sentencepiece_encode-static STATIC ${SPM_ENCODE_SRCS})
+set_target_properties(sentencepiece_encode-static PROPERTIES OUTPUT_NAME "sentencepiece_encode")
 
 add_library(sentencepiece_train-static STATIC ${SPM_TRAIN_SRCS})
 set_target_properties(sentencepiece_train-static PROPERTIES OUTPUT_NAME "sentencepiece_train")
@@ -154,4 +182,5 @@ endif()
 add_executable(spm_train spm_train_main.cc)
 target_link_libraries(spm_train sentencepiece_train-static)
 
-
+add_executable(spm_encode spm_encode_main.cc)
+target_link_libraries(spm_encode sentencepiece_encode-static)

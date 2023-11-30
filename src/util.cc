@@ -173,8 +173,8 @@ std::string VectorChar32ToString(const std::vector<char32> &vec, std::string_vie
   return absl::StrJoin(int32_vec, out_deliminator);
 }
 
-std::vector<char32> StringToVectorChar32(const std::string &str, const absl::flat_hash_map<char, char32> &special_mapping) {
-  const std::vector<std::string> num_strs = absl::StrSplit(str, ' ', false);
+std::vector<char32> StringToVectorChar32(absl::string_view str, const absl::flat_hash_map<char, char32> &special_mapping, char deliminator) {
+  const std::vector<std::string> num_strs = absl::StrSplit(str, deliminator, false);
   std::vector<char32> result;
   for (const std::string &num_str: num_strs) {
     char32 num;
@@ -230,14 +230,20 @@ std::mt19937 *GetRandomGenerator() {
 namespace port {
 
 std::size_t VectorChar32Hash::operator()(const std::vector<char32>& vec) const {
-  std::size_t seed = vec.size();
-  for(auto x: vec) {
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = ((x >> 16) ^ x) * 0x45d9f3b;
-    x = (x >> 16) ^ x;
-    seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-  }
-  return seed;
+  // for faster hashing, we use std::hash<absl::string_view>
+  auto str_obj = std::string_view(reinterpret_cast<const char*>(vec.data()), 
+                                  sizeof(char32)/sizeof(char)*vec.size());
+  return hasher(str_obj);
+
+  // alternative:
+  // std::size_t seed = vec.size();
+  // for(auto x: vec) {
+  //   x = ((x >> 16) ^ x) * 0x45d9f3b;
+  //   x = ((x >> 16) ^ x) * 0x45d9f3b;
+  //   x = (x >> 16) ^ x;
+  //   seed ^= x + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  // }
+  // return seed;
 }
 
 bool operator<(const std::vector<char32> &s1, const std::vector<char32> &s2) {

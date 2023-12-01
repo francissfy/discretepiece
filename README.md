@@ -51,6 +51,17 @@ Train BPE
     --model_prefix "output_model_prefix" \
     --shuffle_input_sentence false
 ```
+This will produce two files: output_model_prefix.model and output_model_prefix.vocab. The output_model_prefix.vocab file is like:
+```text
+...
+218_1353	-394
+1782_293	-395
+101_926	-396
+155_1965	-397
+655_1373	-398
+670_201	-399
+...
+```
 
 ## encode
 spm_encode arguments

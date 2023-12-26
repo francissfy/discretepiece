@@ -106,5 +106,27 @@ Input file to spm_encode has the same format as spm_train. spm_encode can encode
 ## verification
 The correctness of spm_train and spm_encode are verified with original Google sentence piece on a sample test set containing 1000 token sequences. Testing vocabulary size: 8000.
 
+## python binding
+Sometimes we need to encode or decode discrete BPE on-the-fly while in sequence model training, so i implemented a simple wrapping around c++ executable, to install python wrapper, simply do the following:
+```bash
+pip install -e python
+```
+after installation, you can do BPE encoding/decoding like (NOTE: training in python is not implemented yet):
+```python
+import discretepiece as spm
+spm_obj = spm.SpmClient("<path to trained BPE.model>")
+# if the model does not exist, this line will results in segmentation fault. 
+# this is user-unfriendly, but i have limited time and more important things to deal with
+
+raw_ids = [1222, 1163, 1525, 1265, 983, 1532, 1532, 1145, 1188, 1333]
+encoded = spm_obj.Encode(raw_ids)
+# tuple: (2776, 6185, 2215, 197)
+
+decoded = spm_obj.Decode(encoded)
+# tuple: (1222, 1163, 1525, 1265, 983, 1532, 1532, 1145, 1188, 1333)
+
+```
+
+
 ## TODO
 - implement word boundary (done, not tested)

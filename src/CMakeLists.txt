@@ -90,6 +90,13 @@ set(SPM_ENCODE_SRCS
   bpe_model.cc
 )
 
+# converter sources
+set(SPM_COMPATIBLE_CONVERTER_SRCS
+  ${SPM_SHARED_SRCS}
+  builtin_pb/sentencepiece_model.pb.h
+  builtin_pb/sentencepiece_model.pb.cc
+)
+
 add_definitions(
   "-pthread 
   -DHAVE_PTHREAD=1 
@@ -160,8 +167,13 @@ target_link_libraries(spm_train train_static_lib)
 add_executable(spm_encode spm_encode_main.cc)
 target_link_libraries(spm_encode encode_static_lib)
 
+add_executable(spm_compatible_converter 
+  ${SPM_COMPATIBLE_CONVERTER_SRCS}
+  spm_compatible_converter.cc
+)
+
 # for install purpose
-list(APPEND SPM_INSTALLTARGETS spm_encode spm_train)
+list(APPEND SPM_INSTALLTARGETS spm_encode spm_train spm_compatible_converter)
 
 install(TARGETS ${SPM_INSTALLTARGETS}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

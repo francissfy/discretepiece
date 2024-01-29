@@ -56,6 +56,8 @@ set(SPM_SHARED_SRCS
   common.h
   util.h
   util.cc
+  io_utils.h
+  io_utils.cc
   filesystem.h
   filesystem.cc
   init.h
@@ -161,16 +163,21 @@ if (NOT MSVC)
     PROPERTIES COMPILE_FLAGS "-Wno-misleading-indentation")
 endif()
 
+add_subdirectory(kaldiio)
+
 add_executable(spm_train spm_train_main.cc)
-target_link_libraries(spm_train train_static_lib)
+add_dependencies(spm_train kaldiio)
+target_link_libraries(spm_train train_static_lib kaldiio)
 
 add_executable(spm_encode spm_encode_main.cc)
-target_link_libraries(spm_encode encode_static_lib)
+add_dependencies(spm_encode kaldiio)
+target_link_libraries(spm_encode kaldiio encode_static_lib)
 
 add_executable(spm_compatible_converter 
   ${SPM_COMPATIBLE_CONVERTER_SRCS}
   spm_compatible_converter.cc
 )
+target_link_libraries(spm_compatible_converter kaldiio)
 
 # for install purpose
 list(APPEND SPM_INSTALLTARGETS spm_encode spm_train spm_compatible_converter)

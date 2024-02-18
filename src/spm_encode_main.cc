@@ -20,6 +20,7 @@
 #include "filesystem.h"
 #include "init.h"
 #include "util.h"
+#include "io_utils.h"
 #include "discretepiece_processor.h"
 #include "third_party/absl/container/flat_hash_map.h"
 #include "third_party/absl/flags/flag.h"
@@ -36,50 +37,51 @@ int main(int argc, char *argv[]) {
   discretepiece::ScopedResourceDestructor cleaner;
   discretepiece::ParseCommandLineFlags(argv[0], &argc, &argv, true);
   
-  CHECK(!absl::GetFlag(FLAGS_model).empty());
+  CHECK(!absl::GetFlag(FLAGS_model).empty()) << "empty --model";
+  CHECK(
+    absl::GetFlag(FLAGS_output_format) == "piece" || 
+    absl::GetFlag(FLAGS_output_format) == "id"
+  ) << "--output_format should be piece or id, piece is only allowed in text output format";
+
+  // check whether kaldi output
+  if (io_utils::is_valid_kaldi_wspec(absl::GetFlag(FLAGS_output)))
+    CHECK(absl::GetFlag(FLAGS_output_format) != "piece") << "--output_format piece is not valid in kaldi output";
 
   discretepiece::DiscretePieceProcessor sp;
   CHECK_OK(sp.Load(absl::GetFlag(FLAGS_model)));
 
-  auto output = discretepiece::filesystem::NewWritableFile(absl::GetFlag(FLAGS_output));
-  CHECK_OK(output->status());
+  auto index_reader = io_utils::GeneralIndexReader(absl::GetFlag(FLAGS_input));
+  auto index_writer = io_utils::GeneralIndexWriter(absl::GetFlag(FLAGS_output));
 
-  std::string line;
-  std::vector<std::vector<char32>> sps;
-  std::vector<int> ids;
-  std::function<void(absl::string_view line)> process;
+  for (; !index_reader.Done(); index_reader.Next()) {
+    std::string key = index_reader.Key();
+    std::vector<char32> value = index_reader.Value();
 
-  if (absl::GetFlag(FLAGS_output_format) == "piece") {
-    process = [&](absl::string_view line) {
-      std::vector<char32> normalized = discretepiece::string_util::StringToVectorChar32(line, {}, ' ');
-      sps.clear();
-      CHECK_OK(sp.Encode(normalized, &sps));
-      std::vector<std::string> str_pieces(sps.size());
+    if (absl::GetFlag(FLAGS_output_format) == "piece") {
+      std::vector<std::vector<char32>> pieces;
+      CHECK_OK(sp.Encode(value, &pieces));
+      std::vector<std::string> str_pieces(pieces.size());
       std::transform(
-        sps.begin(), sps.end(),
+        pieces.begin(), pieces.end(),
         str_pieces.begin(),
         [] (const std::vector<char32> &s) {
           return discretepiece::string_util::VectorChar32ToString(s, "_");
         }
       );
-      output->WriteLine(absl::StrJoin(str_pieces, " "));
-    };
-  } else if (absl::GetFlag(FLAGS_output_format) == "id") {
-    process = [&](absl::string_view line) {
-      std::vector<char32> normalized = discretepiece::string_util::StringToVectorChar32(line, {}, ' ');
-      ids.clear();
-      CHECK_OK(sp.Encode(normalized, &ids));
-      output->WriteLine(absl::StrJoin(ids, " "));
-    };
-  } else {
-    LOG(FATAL) << "Unknown output format: " << absl::GetFlag(FLAGS_output_format);
-  }
+      index_writer.WritePieces(key, str_pieces);
 
-  // main 
-  auto input = discretepiece::filesystem::NewReadableFile(absl::GetFlag(FLAGS_input));
-  CHECK_OK(input->status());
-  while (input->ReadLine(&line)) {
-    process(line);
+    } else {
+      std::vector<int> encoded_value;
+      CHECK_OK(sp.Encode(value, &encoded_value));
+      std::vector<char32> encoded_value_char32(encoded_value.size());
+      std::transform(
+        encoded_value.begin(), encoded_value.end(),
+        encoded_value_char32.begin(), 
+        [] (int v) { return static_cast<char32>(v); }
+      );
+      index_writer.Write(key, encoded_value_char32);
+
+    }
   }
 
   return 0;
